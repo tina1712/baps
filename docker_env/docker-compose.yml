@@ -1,3 +1,5 @@
+#TODO: set fixed versions of used software
+
 version: '3'
 
 services:
@@ -50,7 +52,6 @@ services:
         '--collation-server=utf8mb4_unicode_ci'
     ]
     volumes:
-#      - ./wp-data:/docker-entrypoint-initdb.d
       - ./wp-data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
