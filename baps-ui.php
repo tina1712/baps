@@ -29,26 +29,85 @@ function baps_application_page() {
     forms();
 }
 
+// TODO: update values instead of adding new ones
+// TODO: Halbtagesfirmen
+// TODO: Email
 function forms() {
     global $wpdb;
     $wp = $wpdb->prefix;
 
-    $full_name = array_key_exists("full_name", $_POST) ? $_POST["full_name"] : "";
-    $email = array_key_exists("email", $_POST) ? $_POST : "";
-    $student_id = array_key_exists("student_id", $_POST) ? $_POST["student_id"] : "";
-    $study_field = array_key_exists("study_field", $_POST) ? $_POST["study_field"] : "";
-    
-    $uid = uniqid();
+    $app_slot_ids = array();
+
+    if (!empty($_POST)) {
+        $full_name = $_POST["full_name"];
+        $email = $_POST["email"];
+        $student_id = $_POST["student_id"];
+        $study_field = $_POST["study_field"];
+        $semester = $_POST["semester"];
+        
+        foreach ($_POST as $key=>$value) {
+            if (substr( $key, 0, 4 ) === "com_" && $value != "") {
+                array_push($app_slot_ids, $value);
+            }
+        }
+
+        $uuid = $_GET["id"];
+
+        upload_file($uuid);
+
+        $query = "INSERT INTO {$wp}baps_applicants (id, name, email, student_id, uuid, study_field, semester) 
+            VALUES (NULL, '$full_name', '$email', '$student_id', '$uuid', '$study_field', '$semester')
+            ON DUPLICATE KEY UPDATE name = '$full_name', email = '$email', study_field = '$study_field', semester = '$semester';";
+        $wpdb->query($query);
+
+
+
+        $query = "SELECT id FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
+        $applicant_id = $wpdb->get_var($query)[0];
+
+// TODO: add company_id
+
+        foreach ($app_slot_ids as $slot_id) {
+            $query = "INSERT INTO {$wp}baps_timeslots_applicants (id, applicant_id, timeslot_id, timestamp) VALUES (NULL, '{$applicant_id}','{$slot_id}', CURRENT_TIMESTAMP)";
+            $wpdb->query($query);
+        }
+
+    } else {
+        $full_name = "";
+        $email = "";
+        $student_id = "";
+        $study_field = "";
+        $semester = "";
+    }
+
 
 //    var_dump($_SERVER['REQUEST_URI']);
 //    echo str_replace( '%7E', '~', $_SERVER['REQUEST_URI']);
 
-    if (isset($_GET["id"]))
+
+    if (isset($_GET["id"])) {
         $uuid = $_GET["id"];
+
+        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
+        $filled = $wpdb->get_var($query);
+
+        echo $query;
+        echo " ", $uuid, " ";
+        var_dump($filled);
+        echo "<br>";
+        echo "<br>";
+
+        $full_name = $filled->name;
+        $email = $filled->email;
+        $student_id = $filled->student_id;
+        $study_field = $filled->study_field;
+        $semester = $filled->semester;
+    }
     else
         $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
 
-    $html = sprintf('<form action="%s" method="post" id="baps-form" enctype="multipart/form-data">', str_replace( '%7E', '~', $_SERVER['REQUEST_URI']));
+    //$html = sprintf('<form action="%s" method="post" id="baps-form" enctype="multipart/form-data">', str_replace( '%7E', '~', $_SERVER['REQUEST_URI']));
+    $html = sprintf('<form action="?id=%s" method="post" id="baps-form" enctype="multipart/form-data">', $uuid);
     $html = $html.'<div class="baps-row">';
     $html = $html.'<span>Name:</span>';
     $html = $html.sprintf('<input type="text" name="full_name" value="%s"/>', $full_name);
@@ -97,12 +156,13 @@ function forms() {
     $timetable = array();
     for ($i=0; $i<$num_timeslots; $i++) {
         for ($j=0; $j<$num_companies; $j++) {
-            $arr = array ("id" => ($j * $num_timeslots) + $i, "free" => 2);
+            $arr = array ("id" => ($j * $num_timeslots) + $i, "free" => 2, "blocked" => FALSE);
             $timetable[$i][$j] = $arr;
         }
     }
 
-    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.company_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
+    //$query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.company_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
+    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
     $response = $wpdb->get_results($query);
    
     $ts_query = "SELECT id, slot from {$wp}baps_timeslots";
@@ -112,18 +172,35 @@ function forms() {
     $c_response = $wpdb->get_results($c_query);
 
     $selectors = '<div style="display:block;">';
-
     foreach ($c_response as $c_r) {
-        $selectors = $selectors."$c_r->name<select>";
+        $selectors = $selectors.$c_r->name.'<select name="com_'.$c_r->name.'">';
         $selectors = $selectors."<option></option>";
         foreach ($ts_response as $ts_r) {
-            $slot_id = ($ts_r->id) + ($c_r->id * $num_timeslots);
-            $selectors = $selectors.sprintf("<option %d>%s</option>", $slot_id, $ts_r->slot);
+            $i = $ts_r->id;
+            $j = $c_r->id;
+
+            $free_slots = $timetable[$i][$j]["free"];
+            $app_slot_id = $i + ($j * $num_timeslots);
+
+            foreach($response as $k => $row) {
+                if ($row->timeslot_id == $app_slot_id) {
+                    unset($response[$k]);
+                    $free_slots--;
+                }
+            }
+
+
+            if (in_array($app_slot_id, $app_slot_ids))
+                $selected = "selected";
+            else
+                $selected = "";
+            
+            $selectors = $selectors.sprintf("<option value='%d' %s>%s (%d)</option>", $app_slot_id, $selected, $ts_r->slot, $free_slots);
         }
         $selectors = $selectors."</select>";
     }
     $selectors = $selectors."</div>";
-
+ 
     $html = $html.$selectors."</div>";
 
     $html = $html.'<div class="baps-row">';
@@ -147,8 +224,8 @@ function forms() {
             $table_header = "<tr>";
             foreach ($c_response as $c_r) {
                 $table_header = $table_header.sprintf("<td><b>%s</b></td>", $c_r->name);
-                $slot_id = ($ts_r->id) + ($c_r->id * $num_timeslots);
-                /$table_rows = $table_rows.sprintf("<td id=%d>%s</td>", $slot_id, $ts_r->slot);
+                $app_slot_id = ($ts_r->id) + ($c_r->id * $num_timeslots);
+                /$table_rows = $table_rows.sprintf("<td id=%d>%s</td>", $app_slot_id, $ts_r->slot);
         }
         $table_rows = $table_rows."</tr>";
     }
@@ -181,10 +258,9 @@ function forms() {
 
 
 function upload_file($filename) {
-    echo BAPS_UPLOAD_DIR;
     if(filter_input(INPUT_POST, "submit", FILTER_SANITIZE_STRING)){
         $ext = pathinfo($_FILES["cv"]['name'], PATHINFO_EXTENSION);
-        move_uploaded_file($_FILES["cv"]["tmp_name"], BAPS_UPLOAD_DIR . $filename . $ext);
+        move_uploaded_file($_FILES["cv"]["tmp_name"], BAPS_UPLOAD_DIR . $filename . "." . $ext);
     }
 }
 

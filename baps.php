@@ -30,12 +30,12 @@ function baps_activation() {
       `name` varchar(255),
       `email` varchar(255),
       `student_id` varchar(255),
-      `uuid` varchar(255) UNIQUE,
+      `uuid` varchar(255),
       `study_field` varchar(255),
       `semester` varchar(10),
       PRIMARY KEY (`id`),
       UNIQUE (id, uuid)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
     $wpdb->query($query);
 
   $query = "CREATE TABLE IF NOT EXISTS`{$wp}baps_companies` (
@@ -45,7 +45,7 @@ function baps_activation() {
       `timeslots` int(14),
       PRIMARY KEY (`id`),
       UNIQUE (id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
   $wpdb->query($query);
 
   $query = "CREATE TABLE IF NOT EXISTS`{$wp}baps_timeslots` (
@@ -53,7 +53,7 @@ function baps_activation() {
       `slot` varchar(10),
       PRIMARY KEY (`id`),
       UNIQUE (id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
   $wpdb->query($query);
 
   $query = "CREATE TABLE IF NOT EXISTS `{$wp}baps_timeslots_applicants` (
@@ -64,7 +64,7 @@ function baps_activation() {
       `timestamp` timestamp,
       UNIQUE (id),
       PRIMARY KEY (`id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
     $wpdb->query($query);
 
     $query = "CREATE TABLE IF NOT EXISTS `{$wp}baps_study_fields` (
@@ -72,7 +72,7 @@ function baps_activation() {
       `name` varchar(255),
       UNIQUE (id),
       PRIMARY KEY (`id`),
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
     $wpdb->query($query);
 
     // INSERT INTO `wp_baps_timeslots` (`id`, `slot`) VALUES (0, '09:00'), (1, '09:30'), (2, '10:00'), (3, '10:30'), (4, '11:00'), (5, '11:30'), (6, '12:00'), (7, '13:30'), (8, '14:00'), (9, '14:30'), (10, '15:00'), (11, '15:30'), (12, '16:00'), (13, '16:30')
