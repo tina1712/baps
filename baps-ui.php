@@ -89,13 +89,7 @@ function forms() {
         $uuid = $_GET["id"];
 
         $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
-        $filled = $wpdb->get_var($query);
-
-        echo $query;
-        echo " ", $uuid, " ";
-        var_dump($filled);
-        echo "<br>";
-        echo "<br>";
+        $filled = $wpdb->get_results($query)[0];
 
         $full_name = $filled->name;
         $email = $filled->email;
