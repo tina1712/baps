@@ -7,6 +7,8 @@
 // INSERT INTO `timeslots_applicants` (`id`, `applicant_id`, `timeslot_id`, `timestamp`) VALUES (NULL, '3', '1', CURRENT_TIMESTAMP)
 // SELECT * FROM applicants INNER JOIN timeslots_applicants ON timeslots_applicants.applicant_id=applicants.id ORDER BY timeslots_applicants.timestamp ASC
 // SELECT * FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY wp_baps_timeslots_applicants.timestamp ASC
+// SELECT wp_baps_timeslots_companies.timeslot_id FROM wp_baps_timeslots_companies INNER JOIN wp_baps_companies ON wp_baps_timeslots_companies.company_id=wp_baps_companies.id WHERE wp_baps_companies.id = \ändern\ ORDER BY wp_baps_timeslots_companies.timeslot_id ASC
+
 
 /*
 Firmen in Datenbank spielen
@@ -26,12 +28,28 @@ add_shortcode("baps", "baps_application_page");
 define("BAPS_UPLOAD_DIR", dirname(__FILE__) . "/uploads/");
 
 function baps_application_page() {
+    $msg = "First line of text\nSecond line of text";
+    $ret = mail("franz.papst@gmail.com","Test",$msg);
+    $converted_res = $ret ? 'true' : 'false';
+    echo "Sent mail: ", $converted_res;
+
+    if (!$ret) {
+        echo error_get_last()['message'];
+    }
+
     forms();
 }
 
-// TODO: update values instead of adding new ones
-// TODO: Halbtagesfirmen
+// TODO: Warteliste verbessern
 // TODO: Email
+// TODO: Backend für Timeslots von Firmen
+// TODO: Alle Felder ausfüllen
+/*
+    	          if ($_POST["first_name"]=="" || $_POST["last_name"]=="" || $_POST["email"]=="" || $_POST["student_id"]=="" || $_POST["semester"]=="" || $_POST["field"]=="") {
+                $status = false;
+	              $message = __("Alle Felder müssen ausgefüllt sein. - ".$field, 'application-system');
+            }
+*/
 function forms() {
     global $wpdb;
     $wp = $wpdb->prefix;
@@ -60,8 +78,6 @@ function forms() {
             ON DUPLICATE KEY UPDATE name = '$full_name', email = '$email', study_field = '$study_field', semester = '$semester';";
         $wpdb->query($query);
 
-
-
         $query = "SELECT id FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
         $applicant_id = $wpdb->get_var($query)[0];
 
@@ -80,11 +96,6 @@ function forms() {
         $semester = "";
     }
 
-
-//    var_dump($_SERVER['REQUEST_URI']);
-//    echo str_replace( '%7E', '~', $_SERVER['REQUEST_URI']);
-
-
     if (isset($_GET["id"])) {
         $uuid = $_GET["id"];
 
@@ -100,8 +111,22 @@ function forms() {
     else
         $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
 
+//TODO: make list dynamic, add file-upload
+    $script = "<script>
+        function check() {
+            var form = document.forms['form'];
+            var fields = ['full_name', 'email', 'student_id', 'study_field', 'semester'];
+
+            fields.forEach(function(entry) {
+                if (entry == '') {
+                alert('Bitte fülle alle Felder aus.');
+                return false;
+            }
+        }
+        </script>";
+
     //$html = sprintf('<form action="%s" method="post" id="baps-form" enctype="multipart/form-data">', str_replace( '%7E', '~', $_SERVER['REQUEST_URI']));
-    $html = sprintf('<form action="?id=%s" method="post" id="baps-form" enctype="multipart/form-data">', $uuid);
+    $html = sprintf('<form action="?id=%s" method="post" name="form" id="baps-form" enctype="multipart/form-data" onsubmit="check()">', $uuid);
     $html = $html.'<div class="baps-row">';
     $html = $html.'<span>Name:</span>';
     $html = $html.sprintf('<input type="text" name="full_name" value="%s"/>', $full_name);
@@ -170,19 +195,34 @@ function forms() {
         $selectors = $selectors.$c_r->name.'<select name="com_'.$c_r->name.'">';
         $selectors = $selectors."<option></option>";
         foreach ($ts_response as $ts_r) {
-            $i = $ts_r->id;
-            $j = $c_r->id;
+            $timeslot = $ts_r->id - 1;
+            $company_id = $c_r->id - 1;
 
-            $free_slots = $timetable[$i][$j]["free"];
-            $app_slot_id = $i + ($j * $num_timeslots);
+            $free_slots = $timetable[$timeslot][$company_id]["free"];
+            $app_slot_id = $timeslot + ($company_id * $num_timeslots);
 
-            foreach($response as $k => $row) {
+            $query_cs = "SELECT {$wp}baps_timeslots_companies.timeslot_id FROM {$wp}baps_timeslots_companies INNER JOIN {$wp}baps_companies
+                ON {$wp}baps_timeslots_companies.company_id={$wp}baps_companies.id WHERE {$wp}baps_companies.id = %d
+                ORDER BY {$wp}baps_timeslots_companies.timeslot_id ASC";
+            $query_cs = sprintf($query_cs, $company_id+1);
+            $available_timeslots = $wpdb->get_results($query_cs);
+
+            //TODO: könnte man eleganter lösen
+            $found = FALSE;
+            foreach ($available_timeslots as $avl) {
+                if ($avl->timeslot_id == $timeslot) {
+                    $found = TRUE;
+                }
+            }
+            if (!$found)
+                continue;
+
+            foreach ($response as $k => $row) {
                 if ($row->timeslot_id == $app_slot_id) {
                     unset($response[$k]);
                     $free_slots--;
                 }
             }
-
 
             if (in_array($app_slot_id, $app_slot_ids))
                 $selected = "selected";
@@ -249,7 +289,6 @@ function forms() {
     echo $table;
     */
 }
-
 
 function upload_file($filename) {
     if(filter_input(INPUT_POST, "submit", FILTER_SANITIZE_STRING)){
