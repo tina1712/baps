@@ -28,27 +28,43 @@ add_shortcode("baps", "baps_application_page");
 define("BAPS_UPLOAD_DIR", dirname(__FILE__) . "/uploads/");
 
 function baps_application_page() {
-    $msg = "First line of text\nSecond line of text";
-    $ret = mail("franz.papst@gmail.com","Test",$msg);
-    $converted_res = $ret ? 'true' : 'false';
-    echo "Sent mail: ", $converted_res;
-
-    if (!$ret) {
-        echo error_get_last()['message'];
-    }
-
     forms();
 }
 
 // TODO: Warteliste verbessern
-// TODO: Email
+// TODO: persönliches Email
 // TODO: Backend für Timeslots von Firmen
+// TODO: Matrikelnummer eindeutig machen
 
 function forms() {
     global $wpdb;
     $wp = $wpdb->prefix;
 
     $app_slot_ids = array();
+
+    if (isset($_GET["id"])) {
+        $uuid = $_GET["id"];
+
+        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
+        $filled = $wpdb->get_results($query)[0];
+
+        $full_name = $filled->name;
+        $email = $filled->email;
+        $student_id = $filled->student_id;
+        $study_field = $filled->study_field;
+        $semester = $filled->semester;
+    }
+    else {
+        $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
+
+        else {
+            $full_name = "";
+            $email = "";
+            $student_id = "";
+            $study_field = "";
+            $semester = "";
+        }
+    }
 
     if (!empty($_POST)) {
         $full_name = $_POST["full_name"];
@@ -66,44 +82,30 @@ function forms() {
         $uuid = $_GET["id"];
 
         upload_file($uuid);
+        send_mail($email, $uuid);
 
-        $query = "INSERT INTO {$wp}baps_applicants (id, name, email, student_id, uuid, study_field, semester) 
-            VALUES (NULL, '$full_name', '$email', '$student_id', '$uuid', '$study_field', '$semester')
-            ON DUPLICATE KEY UPDATE name = '$full_name', email = '$email', study_field = '$study_field', semester = '$semester';";
+        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '$uuid'";
+        $app_id = $wpdb->get_var($query);
+
+        if (!$app_id)
+            $app_id = "NULL";
+
+        $query = "REPLACE INTO {$wp}baps_applicants (id, name, email, student_id, uuid, study_field, semester) 
+            VALUES ($app_id, '$full_name', '$email', '$student_id', '$uuid', '$study_field', '$semester')";
         $wpdb->query($query);
 
         $query = "SELECT id FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
-        $applicant_id = $wpdb->get_var($query)[0];
+        $applicant_id = $wpdb->get_var($query);
 
 // TODO: add company_id
 
         foreach ($app_slot_ids as $slot_id) {
-            $query = "INSERT INTO {$wp}baps_timeslots_applicants (id, applicant_id, timeslot_id, timestamp) VALUES (NULL, '{$applicant_id}','{$slot_id}', CURRENT_TIMESTAMP)";
+            $query = "INSERT INTO {$wp}baps_timeslots_applicants (id, applicant_id, timeslot_id, timestamp)
+                VALUES (NULL, '{$applicant_id}','{$slot_id}', CURRENT_TIMESTAMP)";
             $wpdb->query($query);
         }
 
-    } else {
-        $full_name = "";
-        $email = "";
-        $student_id = "";
-        $study_field = "";
-        $semester = "";
     }
-
-    if (isset($_GET["id"])) {
-        $uuid = $_GET["id"];
-
-        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
-        $filled = $wpdb->get_results($query)[0];
-
-        $full_name = $filled->name;
-        $email = $filled->email;
-        $student_id = $filled->student_id;
-        $study_field = $filled->study_field;
-        $semester = $filled->semester;
-    }
-    else
-        $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
 
 //TODO: make list dynamic, add file-upload check
     $script = "<script>
@@ -141,18 +143,25 @@ function forms() {
 
     $query = "SELECT name FROM {$wp}baps_study_fields ORDER BY {$wp}baps_study_fields.id ASC";
     $response = $wpdb->get_results($query);
-    foreach ($response as $r)
-        $html = $html.sprintf('<option>%s</option>', $r->name);
+    foreach ($response as $r) {
+        if ($r->name == $study_field)
+            $html = $html.sprintf('<option selected>%s</option>', $r->name);
+        else
+            $html = $html.sprintf('<option>%s</option>', $r->name);
 
+    }
     $html = $html.'</select>';
     $html = $html.'</div>';
     $html = $html.'<div class="baps-row">';
     $html = $html.'<span>Aktuelles Semester:</span>';
     $html = $html.'<select name="semester">';
-    $html = $html.'<option>1-4</option>';
-    $html = $html.'<option>5-8</option>';
-    $html = $html.'<option>9-12</option>';
-    $html = $html.'<option>13+</option>';
+    $semesters = ["1-4", "5-8", "9-12", "13+"];
+    foreach ($semesters as $s) {
+        if ($s == $semester)
+            $html = $html.'<option selected>'.$s.'</option>';
+        else
+            $html = $html.'<option>'.$s.'</option>';
+    }
     $html = $html.'</select>';
     $html = $html.'</div>';
 
@@ -177,7 +186,9 @@ function forms() {
     }
 
     //$query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.company_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
-    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
+    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants 
+        INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id 
+        ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
     $response = $wpdb->get_results($query);
    
     $ts_query = "SELECT id, slot from {$wp}baps_timeslots";
@@ -293,4 +304,25 @@ function upload_file($filename) {
     }
 }
 
+function send_mail($recipient, $uuid) {
+    $header = array(
+        "From: vienna@best.eu.org",
+        "MIME-Version: 1.0",
+        "Content-Type: text/html;charset=utf-8"
+    );
+
+    $link = get_permalink()."?id=$uuid";
+
+    $msg = "<html><body><h2>Du hast dich erfolgreich für beWANTED angemeldet!</h2>
+        <p>Um Details deiner Anmeldung zu sehen, oder um nachträchlich etwas zu ändern klicke auf diesen Link:
+        <a href=$link'>$link</a></p>
+        <p>Mit freundlichen Grüßen,<br/>BEST Vienna</p></body></html>";
+
+    mail(
+        "vienna@best.eu.org",
+        "Deine Anmeldung für beWANTED",
+        $msg,
+        implode("\r\n", $header)
+    );
+}
 ?>
