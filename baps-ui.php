@@ -42,29 +42,13 @@ function forms() {
 
     $app_slot_ids = array();
 
-    if (isset($_GET["id"])) {
-        $uuid = $_GET["id"];
 
-        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
-        $filled = $wpdb->get_results($query)[0];
-
-        $full_name = $filled->name;
-        $email = $filled->email;
-        $student_id = $filled->student_id;
-        $study_field = $filled->study_field;
-        $semester = $filled->semester;
-    }
-    else {
-        $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
-
-        else {
-            $full_name = "";
-            $email = "";
-            $student_id = "";
-            $study_field = "";
-            $semester = "";
-        }
-    }
+    // TODO: überarbeiten, uuid nur einmal abfragen
+    $uid = $_GET['id'];
+    $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '$uid'";
+    $app_id = $wpdb->get_var($query);
+    if (!$app_id)
+        $app_id = "NULL";
 
     if (!empty($_POST)) {
         $full_name = $_POST["full_name"];
@@ -79,16 +63,9 @@ function forms() {
             }
         }
 
-        $uuid = $_GET["id"];
-
+        $uuid = $_GET["id"];            
         upload_file($uuid);
         send_mail($email, $uuid);
-
-        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '$uuid'";
-        $app_id = $wpdb->get_var($query);
-
-        if (!$app_id)
-            $app_id = "NULL";
 
         $query = "REPLACE INTO {$wp}baps_applicants (id, name, email, student_id, uuid, study_field, semester) 
             VALUES ($app_id, '$full_name', '$email', '$student_id', '$uuid', '$study_field', '$semester')";
@@ -97,15 +74,49 @@ function forms() {
         $query = "SELECT id FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
         $applicant_id = $wpdb->get_var($query);
 
-// TODO: add company_id
+// TODO: add company_id (?)
+// TODO: only update if not already set
 
         foreach ($app_slot_ids as $slot_id) {
             $query = "INSERT INTO {$wp}baps_timeslots_applicants (id, applicant_id, timeslot_id, timestamp)
                 VALUES (NULL, '{$applicant_id}','{$slot_id}', CURRENT_TIMESTAMP)";
             $wpdb->query($query);
         }
-
     }
+
+    if (isset($_GET["id"])) {
+        $uuid = $_GET["id"];
+
+        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '{$uuid}'";
+        $filled = $wpdb->get_results($query)[0];
+
+        $full_name = $filled->name;
+        $email = $filled->email;
+        $student_id = $filled->student_id;
+        $study_field = $filled->study_field;
+        $semester = $filled->semester;
+
+        if (!$app_slot_ids) {
+            $query = "SELECT timeslot_id FROM wp_baps_timeslots_applicants WHERE applicant_id={$app_id}";
+            $response = $wpdb->get_results($query);
+            
+            foreach ($response as $r)
+                array_push($app_slot_ids, $r->timeslot_id);
+        }
+    }
+    else {
+        $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
+
+        $full_name = "";
+        $email = "";
+        $student_id = "";
+        $study_field = "";
+        $semester = "";
+    }
+
+
+
+
 
 //TODO: make list dynamic, add file-upload check
     $script = "<script>
