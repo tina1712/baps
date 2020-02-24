@@ -105,7 +105,7 @@ function forms() {
     else
         $uuid = substr(md5(rand(1000, 100000)."+".rand(0, 100000)."+".rand(0, 1000000)), 0, 32);
 
-//TODO: make list dynamic, add file-upload
+//TODO: make list dynamic, add file-upload check
     $script = "<script>
         function check() {
             var form = document.forms['form'];
