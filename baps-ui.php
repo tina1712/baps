@@ -40,15 +40,7 @@ function forms() {
     global $wpdb;
     $wp = $wpdb->prefix;
 
-    $app_slot_ids = array();
-
-
-    // TODO: überarbeiten, uuid nur einmal abfragen
-    $uid = $_GET['id'];
-    $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '$uid'";
-    $app_id = $wpdb->get_var($query);
-    if (!$app_id)
-        $app_id = "NULL";
+    $app_slot_ids = array();    
 
     if (!empty($_POST)) {
         $full_name = $_POST["full_name"];
@@ -63,7 +55,12 @@ function forms() {
             }
         }
 
-        $uuid = $_GET["id"];            
+        $uuid = $_GET["id"];
+        $query = "SELECT * FROM {$wp}baps_applicants WHERE uuid = '$uuid'";
+        $app_id = $wpdb->get_var($query);
+        if (!$app_id)
+            $app_id = "NULL";
+        
         upload_file($uuid);
         send_mail($email, $uuid);
 
@@ -75,11 +72,24 @@ function forms() {
         $applicant_id = $wpdb->get_var($query);
 
 // TODO: add company_id (?)
-// TODO: only update if not already set
 
-        foreach ($app_slot_ids as $slot_id) {
+        $query = "SELECT timeslot_id FROM {$wp}baps_timeslots_applicants WHERE applicant_id = '$applicant_id'";
+        $old_occupied = $wpdb->get_results($query);
+        $tmp = array();
+        foreach($old_occupied as $old) {
+            array_push($tmp, $old->timeslot_id);
+        }
+        $old_occupied = $tmp;
+        $removed = array_diff($old_occupied, $app_slot_ids);
+        $added = array_diff($app_slot_ids, $old_occupied);
+
+        foreach ($added as $slot_id) {
             $query = "INSERT INTO {$wp}baps_timeslots_applicants (id, applicant_id, timeslot_id, timestamp)
                 VALUES (NULL, '{$applicant_id}','{$slot_id}', CURRENT_TIMESTAMP)";
+            $wpdb->query($query);
+        }
+        foreach ($removed as $rm) {
+            $query = "DELETE FROM {$wp}baps_timeslots_applicants WHERE timeslot_id = {$rm} AND applicant_id = {$applicant_id}";
             $wpdb->query($query);
         }
     }
@@ -95,6 +105,7 @@ function forms() {
         $student_id = $filled->student_id;
         $study_field = $filled->study_field;
         $semester = $filled->semester;
+        $app_id = $filled->id;
 
         if (!$app_slot_ids) {
             $query = "SELECT timeslot_id FROM wp_baps_timeslots_applicants WHERE applicant_id={$app_id}";
