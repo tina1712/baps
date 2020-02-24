@@ -43,13 +43,7 @@ function baps_application_page() {
 // TODO: Warteliste verbessern
 // TODO: Email
 // TODO: Backend für Timeslots von Firmen
-// TODO: Alle Felder ausfüllen
-/*
-    	          if ($_POST["first_name"]=="" || $_POST["last_name"]=="" || $_POST["email"]=="" || $_POST["student_id"]=="" || $_POST["semester"]=="" || $_POST["field"]=="") {
-                $status = false;
-	              $message = __("Alle Felder müssen ausgefüllt sein. - ".$field, 'application-system');
-            }
-*/
+
 function forms() {
     global $wpdb;
     $wp = $wpdb->prefix;
@@ -117,16 +111,18 @@ function forms() {
             var form = document.forms['form'];
             var fields = ['full_name', 'email', 'student_id', 'study_field', 'semester'];
 
-            fields.forEach(function(entry) {
-                if (entry == '') {
-                alert('Bitte fülle alle Felder aus.');
-                return false;
+            for (i=0; i<fields.length; i++) {
+                value = document.getElementsByName(fields[i])[0].value;
+                if (!value || !value.trim().length) {
+                    alert('Bitte fülle alle Felder aus.');
+                    return false;
+                }
             }
-        }
+        };
         </script>";
 
-    //$html = sprintf('<form action="%s" method="post" id="baps-form" enctype="multipart/form-data">', str_replace( '%7E', '~', $_SERVER['REQUEST_URI']));
-    $html = sprintf('<form action="?id=%s" method="post" name="form" id="baps-form" enctype="multipart/form-data" onsubmit="check()">', $uuid);
+    $html = $script;
+    $html = $html.sprintf('<form action="?id=%s" method="post" name="form" id="baps-form" enctype="multipart/form-data" onsubmit="return check()">', $uuid);
     $html = $html.'<div class="baps-row">';
     $html = $html.'<span>Name:</span>';
     $html = $html.sprintf('<input type="text" name="full_name" value="%s"/>', $full_name);
