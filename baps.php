@@ -116,7 +116,7 @@ INSERT INTO `wp_baps_timeslots` (`id`, `slot`) VALUES
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1;";
     $wpdb->query($query);
 
-    $query = "INSERT INTO wp_baps_study_fields (id, name) 
+    $query = "INSERT INTO {$wp}baps_study_fields (id, name) 
       VALUES (NULL, 'Architektur'), 
       (NULL, 'Bauingenieurwesen'), 
       (NULL, 'Biomedical Engineering'), 
@@ -131,7 +131,7 @@ INSERT INTO `wp_baps_timeslots` (`id`, `slot`) VALUES
       (NULL, 'Technische Physik'), 
       (NULL, 'Umweltingenieurwesen'), 
       (NULL, 'Verfahrenstechnik'), 
-      (NULL, 'Wirtschaftsingenieurwesen - Maschinenbau')
+      (NULL, 'Wirtschaftsingenieurwesen - Maschinenbau'),
       (NULL, 'Sonstige')";
     $wpdb->query($query);
 
