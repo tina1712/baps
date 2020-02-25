@@ -109,7 +109,7 @@ function forms() {
         $app_id = $filled->id;
 
         if (!$app_slot_ids) {
-            $query = "SELECT timeslot_id FROM wp_baps_timeslots_applicants WHERE applicant_id={$app_id}";
+            $query = "SELECT timeslot_id FROM {$wp}baps_timeslots_applicants WHERE applicant_id={$app_id}";
             $response = $wpdb->get_results($query);
             
             foreach ($response as $r)
@@ -299,8 +299,8 @@ function forms() {
     }
 
     //$query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.company_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
-    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.timeslot_id FROM wp_baps_applicants 
-        INNER JOIN wp_baps_timeslots_applicants ON wp_baps_timeslots_applicants.applicant_id=wp_baps_applicants.id 
+    $query = "SELECT {$wp}baps_timeslots_applicants.applicant_id, {$wp}baps_timeslots_applicants.timeslot_id FROM {$wp}baps_applicants 
+        INNER JOIN {$wp}baps_timeslots_applicants ON {$wp}baps_timeslots_applicants.applicant_id={$wp}baps_applicants.id 
         ORDER BY {$wp}baps_timeslots_applicants.timestamp ASC";
     $response = $wpdb->get_results($query);
    
