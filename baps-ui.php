@@ -35,6 +35,7 @@ function baps_application_page() {
 // TODO: persönliches Email
 // TODO: Backend für Timeslots von Firmen
 // TODO: Matrikelnummer eindeutig machen
+// TODO: add MySQL sanitizer
 
 function forms() {
     global $wpdb;
@@ -125,8 +126,94 @@ function forms() {
         $semester = "";
     }
 
+//TODO: in eigene CSS Datei auslagern
+//TODO: eigene Namen verwenden (baps-...)
+    $style = '<style type="text/css">
+        .form-style{
+            max-width:400px;
+            margin:50px auto;
+            background:#fff;
+            border-radius:2px;
+            padding:20px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .form-style ul{
+            padding:0;	
+        }
+        .form-style li{
+            display: block;
+            padding: 9px;
+            border:1px solid #DDDDDD;
+            margin-bottom: 30px;
+            border-radius: 3px;
+        }
+        .form-style li:last-child{
+            border:none;
+            margin-bottom: 0px;
+            text-align: center;
+                height: 30px;
+        }
+        .form-style li > label{
+            display: block;
+            float: left;
+            margin-top: -19px;
+            background: #FFFFFF;
+            height: 14px;
+            padding: 2px 5px 2px 5px;
+            color: #B9B9B9;
+            font-size: 14px;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .form-style input[type="text"],
+        .form-style input[type="email"],
+        .form-style select 
+        {
+            box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            width: 100%;
+            display: block;
+            outline: none;
+            border: none;
+            height: 25px;
+            line-height: 25px;
+            font-size: 16px;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
 
-
+        .form-style li > span{
+            background: #F3F3F3;
+            display: block;
+            padding: 3px;
+            margin: 0 -9px -9px -9px;
+            text-align: center;
+            color: #C0C0C0;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+        }
+        .form-style input[type="submit"]{
+            background: #1d9188;
+            border: none;
+            padding: 10px 20px 10px 20px;
+            border-bottom: 3px solid #1d9188;
+            border-radius: 3px;
+            color: #FFFFFF;
+        }
+        .form-style input[type="submit"]:hover{
+            background: #dea514;
+            border-bottom: 3px solid #dea514;
+            color:#FFFFFF;
+        }
+        .box {
+            width: fit-content;
+            height: 30px;
+        }
+        #sel {
+            margin-top:15px;
+        }
+        </style>';
 
 
 //TODO: make list dynamic, add file-upload check
@@ -145,22 +232,26 @@ function forms() {
         };
         </script>";
 
-    $html = $script;
-    $html = $html.sprintf('<form action="?id=%s" method="post" name="form" id="baps-form" enctype="multipart/form-data" onsubmit="return check()">', $uuid);
-    $html = $html.'<div class="baps-row">';
-    $html = $html.'<span>Name:</span>';
-    $html = $html.sprintf('<input type="text" name="full_name" value="%s"/>', $full_name);
-    $html = $html.'</div>';
-    $html = $html.'<div class="baps-row">';
-    $html = $html.'<span>E-mail</span>';
-    $html = $html.sprintf('<input type="text" name="email" value="%s" />', $email);
-    $html = $html.'</div>';
-    $html = $html.'<div class="baps-row">';
-    $html = $html.'<span>Matrikelnummer:</span>';
-    $html = $html.sprintf('<input type="text" name="student_id" value="%s" />', $student_id);
-    $html = $html.'</div>';
-    $html = $html.'<div class="baps-row">';
-    $html = $html.'<span>Studienrichtung:</span>';
+    $html = $style.$script;
+    $html = $html.sprintf('<form action="?id=%s" method="post" name="form" id="baps-form" enctype="multipart/form-data" onsubmit="return check()" class="form-style">', $uuid);
+    $html = $html.'<ul>';
+    $html = $html.'<li>';
+    $html = $html.'<label for="name">Name</label>';
+    $html = $html.sprintf('<input type="text" name="full_name" value="%s" maxlength="100">', $full_name);
+    $html = $html.'<span>Dein Name</span>';
+    $html = $html.'</li>';
+    $html = $html.'<li>';
+    $html = $html.'<label for="email">E-mail</label>';
+    $html = $html.sprintf('<input type="email" name="email" value="%s" maxlength="100">', $email);
+    $htl = $html.'<span>Deine E-Mail Adresse</span>';
+    $html = $html.'</li>';
+    $html = $html.'<li>';
+    $html = $html.'<label for="student_id">Matrikelnummer</label>';
+    $html = $html.sprintf('<input type="text" name="student_id" value="%s" maxlength="8">', $student_id);
+    $html = $html.'<span>Deine Matrikelnummer</span>';
+    $html = $html.'</li>';
+    $html = $html.'<li>';
+    $html = $html.'<label for="study_field">Studienrichtung</label>';
     $html = $html.sprintf('<select name="study_field" value="%s">', $study_field);
 
     $query = "SELECT name FROM {$wp}baps_study_fields ORDER BY {$wp}baps_study_fields.id ASC";
@@ -173,10 +264,10 @@ function forms() {
 
     }
     $html = $html.'</select>';
-    $html = $html.'</div>';
-    $html = $html.'<div class="baps-row">';
+    $html = $html.'</li>';
+    $html = $html.'<li>';
     $html = $html.'<span>Aktuelles Semester:</span>';
-    $html = $html.'<select name="semester">';
+    $html = $html.'<select name="semester" id="sel">';
     $semesters = ["1-4", "5-8", "9-12", "13+"];
     foreach ($semesters as $s) {
         if ($s == $semester)
@@ -185,13 +276,13 @@ function forms() {
             $html = $html.'<option>'.$s.'</option>';
     }
     $html = $html.'</select>';
-    $html = $html.'</div>';
+    $html = $html.'</li>';
 
-    $html = $html.'<div class="baps-row">';
+    $html = $html.'<li>';
     $html = $html.'<span>Lebenslauf hochladen</span>';
-    $html = $html.'<input type="file" name="cv" /><br />';
-    $html = $html.'</div>';
-    $html = $html.'<div class="baps-row">';
+    $html = $html.'<input type="file" name="cv" id="sel" /><br />';
+    $html = $html.'</li>';
+    $html = $html.'<li>';
     //echo $html;
 
     $query = "SELECT COUNT(*) FROM {$wp}baps_companies";
@@ -264,11 +355,12 @@ function forms() {
     }
     $selectors = $selectors."</div>";
  
-    $html = $html.$selectors."</div>";
+    $html = $html.$selectors."</li>";
 
-    $html = $html.'<div class="baps-row">';
+    $html = $html.'<li>';
     $html = $html.'<input type="submit" value="Absenden" name="submit" />';
-    $html = $html.'</div>';
+    $html = $html.'<li>';
+    $html = $html.'</ul>';
     // <!-- Slots und hidden für Warteliste hinzufügen -->
     $html = $html.'</form>';
 
