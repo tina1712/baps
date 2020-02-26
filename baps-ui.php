@@ -156,7 +156,6 @@ function forms() {
         .form-style li > label{
             display: block;
             float: left;
-            margin-top: -19px;
             background: #FFFFFF;
             height: 14px;
             padding: 2px 5px 2px 5px;
@@ -238,7 +237,7 @@ function forms() {
     $html = $html.'<li>';
     $html = $html.'<label for="name">Name</label>';
     $html = $html.sprintf('<input type="text" name="full_name" value="%s" maxlength="100">', $full_name);
-    $html = $html.'<span>Dein Name</span>';
+    $html = $html.'<span>Dein Vor- und Nachname</span>';
     $html = $html.'</li>';
     $html = $html.'<li>';
     $html = $html.'<label for="email">E-mail</label>';
