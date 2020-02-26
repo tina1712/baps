@@ -195,6 +195,7 @@ function forms() {
         .form-style input[type="submit"]{
             background: #1d9188;
             border: none;
+            margin-left: 30%;
             padding: 10px 20px 10px 20px;
             border-bottom: 3px solid #1d9188;
             border-radius: 3px;
@@ -202,6 +203,7 @@ function forms() {
         }
         .form-style input[type="submit"]:hover{
             background: #dea514;
+            margin-left: 30%;
             border-bottom: 3px solid #dea514;
             color:#FFFFFF;
         }
