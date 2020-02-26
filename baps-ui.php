@@ -157,6 +157,7 @@ function forms() {
             display: block;
             float: left;
             margin-top: -19px;
+            margin-bottom: 15px;
             background: #FFFFFF;
             height: 14px;
             padding: 2px 5px 2px 5px;
